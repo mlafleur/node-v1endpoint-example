@@ -9,6 +9,7 @@
   "author": "Marc LaFleur",
   "license": "MIT",
   "dependencies": {
+    "@microsoft/microsoft-graph-client": "^0.3.2",
     "express": "^4.13.4",
     "express-session": "^1.13.0",
     "request": "^2.72.0"

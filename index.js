@@ -1,13 +1,13 @@
 // Add your app's registration data here
-var client_id = '';
-var client_secret = '';
+const client_id = '';
+const client_secret = '';
 
-
-var express = require('express');
-var session = require('express-session')
-var request = require('request');
-var https = require('https');
-var http = require('http');
+const graph = require("@microsoft/microsoft-graph-client");
+const express = require('express');
+const session = require('express-session')
+const request = require('request');
+const https = require('https');
+const http = require('http');
 
 var app = express();
 app.use('/static', express.static('public'));
@@ -79,33 +79,32 @@ app.get('/returned', function(req, res) {
             var result = JSON.parse(body);
 
             var content = "<pre>" + JSON.stringify(result, null, 2) + "</pre>"
-            content += "<pre>" + auth_code + "</pre>";
-            content += '<a href="/refresh?code=' + result.refresh_token + '" target="_blank">Refresh Token</a>';
+            content += "</p>";
 
-            requestSubscribe(result.access_token, function(subBody) {
-
+            getProfile(result.access_token, function(profile) {
+                content += "<pre>" + JSON.stringify(profile, null, 2) + "</pre>";
                 content += "</p>";
-                content += "<pre>" + subBody + "</pre>";
+
+                content += '<a href="/refresh?code=' + result.refresh_token + '" target="_blank">Refresh Token</a>';
                 res.end(content)
             });
-        })
-    } else {
-        // This is an OAUTH Implicit Grant workflow
-
-        var token = {
-            access_token: req.query.access_token,
-            token_type: req.query.token_type,
-            expires_in: req.query.expires_in,
-            scope: req.query.scope
-        }
-
-        var content = "<pre>" + JSON.stringify(token, null, 2) + "</pre>"
-        content += "<pre>" + token.access_token + "</pre>";
-        content += '<a href="/refresh?code=' + result.refresh_token + '" target="_blank">Refresh Token</a>'
-        res.end(content)
-
+        });
     }
 });
+
+function getProfile(access_token, callback) {
+    var client = graph.Client.init({
+        authProvider: (done) => {
+            done(null, access_token); //first parameter takes an error if you can't get an access token
+        }
+    });
+    client
+        .api('/me')
+        .get((err, res) => {
+            callback(res);
+        });
+}
+
 
 // This is where we convert the refresh token into a usable 
 // brearer token we can use for API calls. 
@@ -129,59 +128,6 @@ app.get('/refresh', function(req, res) {
 });
 
 
-function requestSubscribe(token, callback) {
-
-    var expDate = new Date();
-    expDate.setDate(expDate.getDate() + 1);
-
-
-    var subscription_request = {
-        url: 'https://graph.microsoft.com/v1.0/subscriptions/',
-        headers: {
-            Authorization: 'Bearer ' + token
-        },
-        json: {
-            changeType: 'created',
-            notificationUrl: 'https://localhost:3001/notificationClient',
-            resource: 'me/messages',
-            expirationDateTime: expDate.toISOString()
-        }
-    }
-
-    request.post(subscription_request, function(err, httpResponse, body) {
-        callback(body);
-    });
-
-}
-
-app.get('/notificationClient', function(req, res) {
-    res.send('Success');
-
-});
-
-app.post('/notificationClient', function(req, res) {
-
-    if (req.query.validationToken != null) {
-        res.set('Content-Type', 'text/plain');
-        res.status(200).send(req.query.validationToken);
-    } else {
-        res.status(400).end();
-    }
-
-});
-
-
-const fs = require('fs');
-
-const options = {
-    pfx: fs.readFileSync('localhost-personal.pfx'),
-    passphrase: 'January5191'
-};
-
 http.createServer(app).listen(3000);
-https.createServer(options, app).listen(3001);
 
-// Start listening on port 3000
-//app.listen(3000, function () {
 console.log('Example app listening on port 3000!');
-//});
