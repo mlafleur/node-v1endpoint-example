@@ -17,15 +17,10 @@ app.use(session({
 }))
 
 // Define the various URIs we need
-var auth_uri = ' https://login.microsoftonline.com/common/oauth2/authorize';
+var auth_uri = 'https://login.microsoftonline.com/common/oauth2/authorize';
+var consent_uri = 'https://login.microsoftonline.com/common/adminconsent';
 var token_uri = 'https://login.microsoftonline.com/common/oauth2/token';
 var redirect_uri = 'http://localhost:3000/returned';
-
-// Define scopes
-// NOTE: You must request offline_access in order to recieve a refresh_token. Without it the
-// the autorization will only live for a limited time (typically 1 hour).
-var client_scopes = 'https://graph.microsoft.com/User.Read https://graph.microsoft.com/Mail.Read offline_access';
-
 
 // Forms
 // There are two forms we post to the v2 endpoint, one to request the initial token and another 
@@ -54,8 +49,12 @@ var refresh_token_request = {
 
 // This is the web root and provides a link that kicks off the OAUTH process 
 app.get('/', function(req, res) {
-    var codegrant_endpoint = auth_uri + '?client_id=' + client_id + '&response_type=code&redirect_uri=' + redirect_uri;
-    res.send('<div><a href="' + codegrant_endpoint + '" target="_blank">Code Grant Workflow</a></div>');
+    var codegrant_endpoint = auth_uri + '?client_id=' + client_id + '&response_type=code&redirect_uri=' + redirect_uri
+    var consent_endpoint = consent_uri + '?client_id=' + client_id + '&response_type=code&redirect_uri=' + redirect_uri
+
+    var output = '<div><a href="' + codegrant_endpoint + '" target="_blank">Code Grant Workflow</a></div>';
+    output = output + '<div><a href="' + consent_endpoint + '" target="_blank">Admin Consent Workflow</a></div>';
+    res.send(output);
 });
 
 
